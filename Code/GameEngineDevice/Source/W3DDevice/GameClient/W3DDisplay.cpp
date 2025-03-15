@@ -682,7 +682,7 @@ void W3DDisplay::init( void )
 
 // jmarshall - borderless fullscreen
 	DEVMODE dm = {};
-	if (!getWindowed())
+	//if (!getWindowed())
 	{
 		dm.dmSize = sizeof(dm);
 		EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dm);

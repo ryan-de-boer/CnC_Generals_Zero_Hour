@@ -1,1 +1,5 @@
 **/.vs
+Code/build.bat
+Code/build
+Run/*.exe
+Run/*.pdb

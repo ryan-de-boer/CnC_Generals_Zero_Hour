@@ -4534,6 +4534,12 @@ void GameLogic::loadPostProcess( void )
 
 }  // end loadPostProcess
 
+extern bool g_gtweak;
+WWCONSOLE_COMMAND(tweak, "Toggles tweak windows")
+{
+	g_gtweak = !g_gtweak;
+}
+
 WWCONSOLE_COMMAND(spawn, "Spawns a object at the cursor position for the local player")
 {
 	if (!TheGameLogic->isInGame() || TheShell->isShellActive())
