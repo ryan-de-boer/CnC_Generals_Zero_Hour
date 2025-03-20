@@ -290,6 +290,8 @@ void DozerActionMoveToActionPosState::loadPostProcess( void )
 {
 }  // end loadPostProcess
 
+bool g_instantBuild = false;
+
 //-------------------------------------------------------------------------------------------------
 /** We are supposed to be on route to our action position now, see when we get there or
 	* detect that we have encountered a problem that's going to cause it to give up */
@@ -345,8 +347,7 @@ StateReturnType DozerActionMoveToActionPosState::update( void )
 	const Real SLOP = 15.0f;
 	Real allowableDistanceSqr = sqr(max( MIN_ACTION_TOLERANCE, dozer->getGeometryInfo().getBoundingSphereRadius() + SLOP ));
 
-
-	if( distSqr <= allowableDistanceSqr )
+	if((!TheGameLogic->isInMultiplayerGame() && g_instantBuild) || distSqr <= allowableDistanceSqr )
 	{
 		if( m_task == DOZER_TASK_BUILD )
 		{
@@ -408,6 +409,9 @@ protected:
 	DozerTask m_task;						///< our task
 	UnsignedInt m_enterFrame;		///< frame we entered this state on
 
+private:
+	void finishConstruction();
+
 };
 EMPTY_DTOR(DozerActionDoActionState)
 
@@ -463,6 +467,8 @@ StateReturnType DozerActionDoActionState::onEnter( void )
 
 }  // end onEnter
 
+
+
 //-------------------------------------------------------------------------------------------------
 /** Do the action */
 //-------------------------------------------------------------------------------------------------
@@ -491,14 +497,24 @@ StateReturnType DozerActionDoActionState::update( void )
 	if ( dozer->isDisabledByType( DISABLED_UNMANNED ) )// Yipes, I've been sniped!
 		return STATE_FAILURE;
 
-	// do the task
 	Bool complete = FALSE;
+
+	if ((!TheGameLogic->isInMultiplayerGame() && g_instantBuild) && dozer->getControllingPlayer()->isLocalPlayer() && m_task== DOZER_TASK_BUILD)
+	{
+		dozerAI->setBuildSubTask(DOZER_DO_BUILD_AT_DOCK);
+		finishConstruction();
+		complete = TRUE;
+	}
+
+	// do the task
 	switch( m_task )
 	{
 
 		//---------------------------------------------------------------------------------------------
 		case DOZER_TASK_BUILD:
 		{
+
+
 			//GS Moved this inside Build, since you are allowed to Repair things that are not your player (canRepairObject handles it)
 			if (dozer->getControllingPlayer() != goalObject->getControllingPlayer())//Yipes, SOmehow I have changed sides in mid build!
 				return STATE_FAILURE;
@@ -526,17 +542,21 @@ StateReturnType DozerActionDoActionState::update( void )
 					dozerAI->startBuildingSound( goalObject->getTemplate()->getPerUnitSound( "UnderConstruction" ), goalObject->getID() );
 				}
 			}  // end if
+			
 
 			// only do the build if we've moved into the dock position
 			if( dozerAI->getBuildSubTask() == DOZER_DO_BUILD_AT_DOCK )
 			{
 
 				// the builder is now actively constructing something
-				dozer->setModelConditionState( MODELCONDITION_ACTIVELY_CONSTRUCTING );
-				
+				dozer->setModelConditionState( MODELCONDITION_ACTIVELY_CONSTRUCTING );				
 
 				// increase the construction percent of the goal object
 				Int framesToBuild = goalObject->getTemplate()->calcTimeToBuild( dozer->getControllingPlayer() );
+				if ((TheGameLogic->isInMultiplayerGame() && g_instantBuild) && dozer->getControllingPlayer()->isLocalPlayer())
+				{
+					framesToBuild = 1;
+				}
 				Real percentProgressThisFrame = 100.0f / framesToBuild;
 				goalObject->setConstructionPercent( goalObject->getConstructionPercent() + 
 																						percentProgressThisFrame );
@@ -763,6 +783,10 @@ StateReturnType DozerActionDoActionState::update( void )
 	// if we're complete with the task we exit success
 	if( complete == TRUE )
 	{
+		if (!TheGameLogic->isInMultiplayerGame() && g_instantBuild)
+		{
+			ai->aiIdle(CMD_FROM_AI);
+		}
 
 		// this task is now complete, remove it from dozer consideration
 		dozerAI->internalTaskComplete( m_task );
@@ -821,7 +845,7 @@ DozerActionStateMachine::DozerActionStateMachine( Object *owner, DozerTask task 
 
 	// order matters: first state is the default state.
 	defineState( DOZER_ACTION_PICK_ACTION_POS, newInstance(DozerActionPickActionPosState)( this, task ), DOZER_ACTION_MOVE_TO_ACTION_POS, EXIT_MACHINE_WITH_FAILURE );
-	defineState( DOZER_ACTION_MOVE_TO_ACTION_POS, newInstance(DozerActionMoveToActionPosState)( this, task ), DOZER_ACTION_DO_ACTION, DOZER_ACTION_PICK_ACTION_POS );
+	defineState(DOZER_ACTION_MOVE_TO_ACTION_POS, newInstance(DozerActionMoveToActionPosState)(this, task), DOZER_ACTION_DO_ACTION, DOZER_ACTION_PICK_ACTION_POS);
 	defineState( DOZER_ACTION_DO_ACTION, newInstance(DozerActionDoActionState)( this, task ), EXIT_MACHINE_WITH_SUCCESS, EXIT_MACHINE_WITH_FAILURE );
 }
 
@@ -1621,6 +1645,152 @@ UpdateSleepTime DozerAIUpdate::update( void )
 		
 }  // end update
 
+void DozerActionDoActionState::finishConstruction()
+{
+	Object* goalObject = getMachineGoalObject();
+	Object* dozer = getMachineOwner();
+	AIUpdateInterface* ai = dozer->getAIUpdateInterface();
+	if (!ai)
+	{
+		return;// STATE_FAILURE;
+	}
+
+	DozerAIInterface* dozerAI = ai->getDozerAIInterface();
+
+	{
+
+		// the builder is now actively constructing something
+		dozer->setModelConditionState(MODELCONDITION_ACTIVELY_CONSTRUCTING);
+
+
+		// increase the construction percent of the goal object
+		Int framesToBuild = goalObject->getTemplate()->calcTimeToBuild(dozer->getControllingPlayer());
+		if (dozer->getControllingPlayer()->isLocalPlayer())
+		{
+			framesToBuild = 1;
+		}
+		Real percentProgressThisFrame = 100.0f / framesToBuild;
+		goalObject->setConstructionPercent(goalObject->getConstructionPercent() +
+			percentProgressThisFrame);
+
+		//
+		// every time we construct a piece of the goal object, the goal object gets a little
+		// bit o health, note that we're bypassing the regular healing/damage methods
+		// here and going straight for the change of the health
+		//
+		BodyModuleInterface* body = goalObject->getBodyModule();
+		body->internalChangeHealth(body->getMaxHealth() / INT_TO_REAL(framesToBuild));
+
+		//
+		// since we've just actually contributed a "piece" to this building, we'll say that
+		// we are now the producer and the builder
+		//
+		goalObject->setProducer(dozer);
+		goalObject->setBuilder(dozer);
+
+		// check for construction complete
+		if (goalObject->getConstructionPercent() >= 100.0f)
+		{
+
+			// clear the under construction status
+			goalObject->clearStatus(OBJECT_STATUS_UNDER_CONSTRUCTION);
+			goalObject->clearStatus(OBJECT_STATUS_RECONSTRUCTING);
+
+			// stop playing the construction sound!
+			dozerAI->finishBuildingSound();
+
+			// object will now be idle instead of in one of the construction actions
+			goalObject->clearModelConditionFlags(
+				MAKE_MODELCONDITION_MASK3(MODELCONDITION_AWAITING_CONSTRUCTION, MODELCONDITION_PARTIALLY_CONSTRUCTED, MODELCONDITION_ACTIVELY_BEING_CONSTRUCTED));
+
+			// set the construction at the 100% enum value
+			goalObject->setConstructionPercent(CONSTRUCTION_COMPLETE);
+
+			//
+			// now that we're done with construction we evaluate the visual condition of
+			// the object since while under construction visual changes due to damage state
+			// do not occur.  Note that is was important to call this after we cleared the
+			// model conditions involving construction because part of this evaluation
+			// is to auto populate the model with particle systems when special named
+			// bones for the current given state are provided
+			//
+			body->evaluateVisualCondition();
+
+			// this object now has energy influence in the player
+			Player* player = goalObject->getControllingPlayer();
+			if (player)
+			{
+
+				// notification for build completeion
+				player->onStructureConstructionComplete(dozer, goalObject, dozerAI->getIsRebuild());
+
+				//
+				// Now onCreates were called at construction start.  Now at finish is when we
+				// want the Game side of OnCreate
+				//
+				for (BehaviorModule** m = goalObject->getBehaviorModules(); *m; ++m)
+				{
+					CreateModuleInterface* create = (*m)->getCreate();
+					if (!create)
+						continue;
+					create->onBuildComplete();
+				}
+
+			}  // end if
+
+			// Creation is another valid and essential time to call this.  This building now Looks.
+			goalObject->handlePartitionCellMaintenance();
+
+			// this object how has influence in the controlling players' tech tree
+			/// @todo need to write this
+
+			// do some UI stuff for the constrolling player
+			if (dozer->isLocallyControlled())
+			{
+
+				// message the the building player
+				UnicodeString format = TheGameText->fetch("DOZER:ConstructionComplete");
+				UnicodeString objectName = goalObject->getTemplate()->getDisplayName();
+				if (objectName.isEmpty())
+				{
+					UnicodeString format = TheGameText->fetch("INI:MissingDisplayName");
+
+					objectName.format(format, goalObject->getTemplate()->getName().str());
+
+				}  // end if
+
+				UnicodeString msg;
+				msg.format(format.str(), objectName.str());
+				TheInGameUI->message(msg);
+
+				AudioEventRTS audio = *dozer->getTemplate()->getVoiceTaskComplete();
+				audio.setObjectID(dozer->getID());
+				TheAudio->addAudioEvent(&audio);
+
+				/// make radar neat-o attention grabber event at build location
+				TheRadar->createEvent(goalObject->getPosition(), RADAR_EVENT_CONSTRUCTION);
+
+			}  // end if
+
+			// this will allow us to exit the state machine with success
+//			complete = TRUE;
+
+			// move off to the end dock position if present
+			const Coord3D* endPos = dozerAI->getDockPoint(m_task, DOZER_DOCK_POINT_END);
+			Coord3D pos = *dozer->getPosition();
+			if (endPos) {
+				pos = *endPos;
+			}
+			// Our goal may be inside a building, if we are packing them in tight, so try adjusting. jba.
+			TheAI->pathfinder()->adjustToPossibleDestination(dozer, ai->getLocomotorSet(), &pos);
+			ai->aiMoveToPosition(&pos, CMD_FROM_AI);
+
+		}  // end if
+
+	}  // end if
+
+}
+
 //-------------------------------------------------------------------------------------------------
 /** The entry point of a construct command to the Dozer */
 //-------------------------------------------------------------------------------------------------
@@ -1721,7 +1891,7 @@ Object *DozerAIUpdate::construct( const ThingTemplate *what,
 	owningPlayer->onStructureCreated( getObject(), obj );
 
 	// set a construction percent for the new object to zero and a status for under construction
-	obj->setConstructionPercent( 0.0 );
+	obj->setConstructionPercent(0.0);
 
 	// newly constructed objects start at one hit point
 	BodyModuleInterface *body = obj->getBodyModule();

@@ -492,6 +492,7 @@ bool g_wireframe = false;
 bool g_lastCvarWireframe = false;
 bool g_gtweak = false;
 extern bool g_infiniteHealth;
+extern bool g_instantBuild;
 
 /** -----------------------------------------------------------------------------------------------
  * Redraw all views, update the GUI, play sound effects, etc.
@@ -746,36 +747,55 @@ void GameClient::update( void )
 		}
 	}
 	{
-		if (g_lastCvarWireframe != wireframeCvar.GetBool())
+		if (TheGameLogic->isInMultiplayerGame())
 		{
-			g_wireframe = wireframeCvar.GetBool();
-			g_lastCvarWireframe = g_wireframe;
+			// just to be sure we don't enable these in multiplayer
+			g_wireframe = false;
+			g_infiniteHealth = false;
+			g_instantBuild = false;
 		}
-		if (g_gtweak || tweakCvar.GetBool())
+		if (!TheGameLogic->isInMultiplayerGame())
 		{
-			static float f = 0.0f;
-			static int counter = 0;
-			static bool show_demo_window = false;
-			static bool show_another_window = false;
+			if (g_lastCvarWireframe != wireframeCvar.GetBool())
+			{
+				g_wireframe = wireframeCvar.GetBool();
+				g_lastCvarWireframe = g_wireframe;
+			}
+			if (g_gtweak || tweakCvar.GetBool())
+			{
+				static float f = 0.0f;
+				static int counter = 0;
+				static bool show_demo_window = false;
+				static bool show_another_window = false;
 
-			ImGui::Begin("Tweak");
+				ImGui::SetNextWindowSize(ImVec2(300, 400));
+				ImGui::Begin("Tweak");
 
-			ImGui::Text("This tweaks some things.");
-			ImGui::Checkbox("Wireframe", &g_wireframe);
-			ImGui::Checkbox("Infinite Health", &g_infiniteHealth);
-			
-			//	ImGui::Checkbox("Another Window", &show_another_window);
+				ImGui::Text("This tweaks some things.");
+				ImGui::Checkbox("Wireframe", &g_wireframe);
+				ImGui::Checkbox("Infinite Health", &g_infiniteHealth);
+				ImGui::Checkbox("Instant Build", &g_instantBuild);
+				
 
-			//	ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-				//			ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+				if (ImGui::Button("Get 10000 Money"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+				{
+					ThePlayerList->getLocalPlayer()->getMoney()->deposit(10000, true);
+				}
 
-			//	if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-			//		counter++;
-			//	ImGui::SameLine();
-			//	ImGui::Text("counter = %d", counter);
+				// 
+							//	ImGui::Checkbox("Another Window", &show_another_window);
 
-				//					ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-			ImGui::End();
+							//	ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+								//			ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+
+							//	if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+							//		counter++;
+							//	ImGui::SameLine();
+							//	ImGui::Text("counter = %d", counter);
+
+								//					ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+				ImGui::End();
+			}
 		}
 	}
 

@@ -4537,6 +4537,11 @@ void GameLogic::loadPostProcess( void )
 extern bool g_gtweak;
 WWCONSOLE_COMMAND(tweak, "Toggles tweak windows")
 {
+	if (TheGameLogic->isInMultiplayerGame())
+	{
+		DevConsole.AddLog("Not supported in multiplayer game.");
+		return;
+	}
 	g_gtweak = !g_gtweak;
 }
 

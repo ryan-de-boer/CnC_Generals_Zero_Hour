@@ -605,6 +605,8 @@ void ProductionUpdate::updateDoors()
 	}
 }
 
+extern bool g_instantBuild;
+
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 UpdateSleepTime ProductionUpdate::update( void )
@@ -716,6 +718,11 @@ UpdateSleepTime ProductionUpdate::update( void )
 	else
 		totalProductionFrames = production->m_upgradeToResearch->calcTimeToBuild( player );
 
+	if (!TheGameLogic->isInMultiplayerGame() && g_instantBuild)
+	{
+		production->m_framesUnderConstruction = totalProductionFrames;
+	}
+	
 	// figure out our percent complete
 	production->m_percentComplete = INT_TO_REAL( production->m_framesUnderConstruction ) /
 																	INT_TO_REAL( totalProductionFrames ) *

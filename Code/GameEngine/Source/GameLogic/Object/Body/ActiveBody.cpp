@@ -992,7 +992,7 @@ void ActiveBody::internalChangeHealth( Real delta )
 	// change the health by the delta, it can be positive or negative
 	m_currentHealth += delta;
 
-	if (g_infiniteHealth && this->getObject()->getControllingPlayer()->isLocalPlayer())
+	if (!TheGameLogic->isInMultiplayerGame() && g_infiniteHealth && this->getObject()->getControllingPlayer()->isLocalPlayer())
 	{
 		// if current body is human player return
 		m_currentHealth = m_maxHealth;
