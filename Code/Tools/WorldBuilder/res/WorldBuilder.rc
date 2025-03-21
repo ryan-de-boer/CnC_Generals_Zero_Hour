@@ -252,6 +252,7 @@ BEGIN
         MENUITEM "Show Texture\tCtrl+T",        ID_VIEW_SHOWTEXTURE
         MENUITEM SEPARATOR
         MENUITEM "Show Terrain",                ID_VIEW_SHOW_TERRAIN
+        MENUITEM "Show Roads",                  ID_VIEW_SHOW_ROADS
         MENUITEM "Show Object Icons\tCtrl+B",   ID_VIEW_SHOW_OBJECTS
         MENUITEM "Show Waypoints",              ID_VIEW_SHOWWAYPOINTS
         MENUITEM "Show Trigger Areas",          ID_VIEW_SHOWPOLYGONTRIGGERS

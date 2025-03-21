@@ -60,6 +60,8 @@ WbView::WbView() :
 	m_snapToGrid = (snapToGrid!=0);
 	Int showTerrain = ::AfxGetApp()->GetProfileInt(MAIN_FRAME_SECTION, "ShowTerrain", 1);
 	m_showTerrain = (showTerrain!=0);
+	Int showRoads = ::AfxGetApp()->GetProfileInt(MAIN_FRAME_SECTION, "ShowRoads", 1);
+	TheTerrainRoads->getShowRoads() = (showRoads != 0);
 }
 
 WbView::~WbView()
@@ -133,6 +135,8 @@ BEGIN_MESSAGE_MAP(WbView, CView)
 	ON_COMMAND(ID_VALIDATION_FIXTEAMS, OnValidationFixTeams)
 	ON_COMMAND(ID_VIEW_SHOW_TERRAIN, OnShowTerrain)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_SHOW_TERRAIN, OnUpdateShowTerrain)
+	ON_COMMAND(ID_VIEW_SHOW_ROADS, OnShowRoads)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_SHOW_ROADS, OnUpdateShowRoads)
 	ON_WM_CREATE()
 	
 	//}}AFX_MSG_MAP
@@ -948,6 +952,15 @@ void WbView::OnUpdateShowTerrain(CCmdUI* pCmdUI)
 	pCmdUI->SetCheck(m_showTerrain ? 1 : 0);
 }
 
+void WbView::OnShowRoads()
+{
+	TheTerrainRoads->getShowRoads() = !TheTerrainRoads->getShowRoads();
+}
+
+void WbView::OnUpdateShowRoads(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(TheTerrainRoads->getShowRoads() ? 1 : 0);
+}
 
 void WbView::OnEditTeamlist() 
 {
