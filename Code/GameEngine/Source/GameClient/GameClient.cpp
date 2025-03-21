@@ -775,6 +775,7 @@ void GameClient::update( void )
 				ImGui::Text("This tweaks some things.");
 				ImGui::Checkbox("Wireframe", &g_wireframe);
 				ImGui::Checkbox("Show Roads", &TheTerrainRoads->getShowRoads());
+				ImGui::Checkbox("Show Terrain Normals", &TheWritableGlobalData->m_showTerrainNormals);
 				ImGui::Checkbox("Infinite Health", &g_infiniteHealth);
 				ImGui::Checkbox("Instant Build", &g_instantBuild);
 				
