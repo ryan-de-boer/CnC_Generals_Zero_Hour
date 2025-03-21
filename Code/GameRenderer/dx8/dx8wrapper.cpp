@@ -1670,6 +1670,7 @@ void DX8Wrapper::End_Scene(bool flip_frames)
 	Set_Material(NULL);
 }
 
+extern bool g_wireframe;
 
 void DX8Wrapper::Flip_To_Primary(void)
 {
@@ -1702,6 +1703,10 @@ void DX8Wrapper::Flip_To_Primary(void)
 				}
 			} else {
 				WWDEBUG_SAY(("Flipping: %ld\n", FrameCount));
+
+				if (!g_wireframe)
+					DX8Wrapper::D3DDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
+
 				hr = DX8Wrapper::D3DDevice->Present(NULL, NULL, NULL, NULL);
 
 				if (SUCCEEDED(hr)) {
@@ -1900,6 +1905,8 @@ void DX8Wrapper::Draw_Sorting_IB_VB(
 	DX8CALL(SetIndices(static_cast<DX8IndexBufferClass*>(dyn_ib_access.IndexBuffer)->Get_DX8_Index_Buffer()));
 	DX8_RECORD_INDEX_BUFFER_CHANGE();
 
+	if (g_wireframe)
+		DX8Wrapper::D3DDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME);
 	DX8CALL(DrawIndexedPrimitive(
 		D3DPT_TRIANGLELIST,
 		dyn_vb_access.VertexBufferOffset,
@@ -1961,6 +1968,8 @@ void DX8Wrapper::Draw(
 					break;
 				}*/
 				DX8_RECORD_RENDER(polygon_count,vertex_count,render_state.shader);
+				if (g_wireframe)
+					DX8Wrapper::D3DDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME);
 				DX8CALL(DrawIndexedPrimitive(
 					(D3DPRIMITIVETYPE)primitive_type,
 					render_state.index_base_offset+render_state.vba_offset,

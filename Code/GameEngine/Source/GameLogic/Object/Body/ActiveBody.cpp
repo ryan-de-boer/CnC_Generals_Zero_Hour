@@ -222,6 +222,8 @@ void ActiveBody::setCorrectDamageState()
 	}
 }
 
+bool g_infiniteHealth = false;
+
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 void ActiveBody::setDamageState( BodyDamageType newState )
@@ -243,6 +245,10 @@ void ActiveBody::setDamageState( BodyDamageType newState )
 	{
 		ratio = 0.0f;
 	}
+	//if (g_infiniteHealth)
+	//{
+	//	return;
+	//}
 	Real desiredHealth = m_maxHealth * ratio - 1;// -1 because < not <= in calcState
 	desiredHealth = max( desiredHealth, 0.0f );
 	internalChangeHealth( desiredHealth - m_currentHealth );
@@ -326,6 +332,25 @@ void ActiveBody::doDamageFX( const DamageInfo *damageInfo )
 //-------------------------------------------------------------------------------------------------
 void ActiveBody::attemptDamage( DamageInfo *damageInfo )
 {
+	//if (g_infiniteHealth)
+	//{
+	//	//Object* srcObj = TheGameLogic->findObjectByID(damageInfo->in.m_sourceID);
+	//	//if (srcObj)
+	//	//{
+	//	//	Player* srcPlayer = srcObj->getControllingPlayer();
+	//	//	if (!srcPlayer->isLocalPlayer())
+	//	//	{
+	//	//		return;
+	//	//	}
+	//  //}
+
+	//  if (this->getObject()->getControllingPlayer()->isLocalPlayer())
+	//	{
+	//		// if current body is human player return
+	//		return;
+	//	}
+	//}
+
 	validateArmorAndDamageFX();
 
 	// sanity
@@ -966,6 +991,12 @@ void ActiveBody::internalChangeHealth( Real delta )
 
 	// change the health by the delta, it can be positive or negative
 	m_currentHealth += delta;
+
+	if (!TheGameLogic->isInMultiplayerGame() && g_infiniteHealth && this->getObject()->getControllingPlayer()->isLocalPlayer())
+	{
+		// if current body is human player return
+		m_currentHealth = m_maxHealth;
+	}
 
 	// high end cap
 	Real maxHealth = m_maxHealth;

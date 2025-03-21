@@ -1144,6 +1144,9 @@ void GlobalData::reset( void )
 
 }  // end ResetGlobalData
 
+extern Bool ApplicationIsWindowed;
+extern Bool WindowedSetViaCommandLine;
+
 //-------------------------------------------------------------------------------------------------
 /** Parse GameData entry */
 //-------------------------------------------------------------------------------------------------
@@ -1187,6 +1190,15 @@ void GlobalData::parseGameDataDefinition( INI* ini )
 
 	// override INI values with user preferences
 	OptionPreferences optionPref;
+	TheWritableGlobalData->m_windowed = optionPref.getWindowed();
+	if (!WindowedSetViaCommandLine)
+	{
+		ApplicationIsWindowed = TheGlobalData->m_windowed;
+	}
+	else
+	{
+		TheWritableGlobalData->m_windowed = ApplicationIsWindowed;
+	}
  	TheWritableGlobalData->m_useAlternateMouse = optionPref.getAlternateMouseModeEnabled();
 	TheWritableGlobalData->m_keyboardScrollFactor = optionPref.getScrollFactor();
 	TheWritableGlobalData->m_defaultIP = optionPref.getLANIPAddress();

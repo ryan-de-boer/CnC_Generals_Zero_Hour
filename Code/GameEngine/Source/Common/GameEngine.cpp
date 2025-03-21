@@ -252,6 +252,8 @@ void GameEngine::setFramesPerSecondLimit( Int fps )
 	m_maxFPS = fps;
 }
 
+extern Bool ApplicationIsWindowed;
+
 /** -----------------------------------------------------------------------------------------------
  * Initialize the game engine by initializing the GameLogic and GameClient.
  */
@@ -315,6 +317,7 @@ void GameEngine::init( int argc, char *argv[] )
 		
 		// special-case: parse command-line parameters after loading global data
 		parseCommandLine(argc, argv);
+		TheWritableGlobalData->m_windowed = ApplicationIsWindowed;
 
 		// doesn't require resets so just create a single instance here.
 		TheGameLODManager = MSGNEW("GameEngineSubsystem") GameLODManager;

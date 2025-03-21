@@ -4534,6 +4534,17 @@ void GameLogic::loadPostProcess( void )
 
 }  // end loadPostProcess
 
+extern bool g_gtweak;
+WWCONSOLE_COMMAND(tweak, "Toggles tweak windows")
+{
+	if (TheGameLogic->isInMultiplayerGame())
+	{
+		DevConsole.AddLog("Not supported in multiplayer game.");
+		return;
+	}
+	g_gtweak = !g_gtweak;
+}
+
 WWCONSOLE_COMMAND(spawn, "Spawns a object at the cursor position for the local player")
 {
 	if (!TheGameLogic->isInGame() || TheShell->isShellActive())

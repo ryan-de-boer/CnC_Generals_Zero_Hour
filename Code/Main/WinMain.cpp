@@ -81,6 +81,7 @@
 HINSTANCE ApplicationHInstance = NULL;  ///< our application instance
 HWND ApplicationHWnd = NULL;  ///< our application window handle
 Bool ApplicationIsWindowed = true;
+Bool WindowedSetViaCommandLine = false;
 Win32Mouse *TheWin32Mouse= NULL;  ///< for the WndProc() only
 DWORD TheMessageTime = 0;	///< For getting the time that a message was posted from Windows.
 
@@ -945,8 +946,16 @@ int __stdcall WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmd
 		while (argc < 20 && token != NULL) {
 			argv[argc++] = strtrim(token);
 			//added a preparse step for this flag because it affects window creation style
-			if (stricmp(token,"-win")==0)
-				ApplicationIsWindowed=true;
+			if (stricmp(token, "-win") == 0)
+			{
+				WindowedSetViaCommandLine = true;
+				ApplicationIsWindowed = true;
+			}
+			if (stricmp(token, "-full") == 0)
+			{
+				WindowedSetViaCommandLine = true;
+				ApplicationIsWindowed = false;
+			}
 			token = nextParam(NULL, "\" ");	   
 		}
 

@@ -1,1 +1,10 @@
 **/.vs
+Code/build.bat
+Code/build
+Run/*.exe
+Run/*.pdb
+Run/Debug/*.dll
+Run/Debug/*.pdb
+Run/Debug/*.map
+*.orig
+Run/*.txt

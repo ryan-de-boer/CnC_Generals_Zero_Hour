@@ -488,6 +488,12 @@ void GameClient::registerDrawable( Drawable *draw )
 
 }  // end registerDrawable
 
+bool g_wireframe = false;
+bool g_lastCvarWireframe = false;
+bool g_gtweak = false;
+extern bool g_infiniteHealth;
+extern bool g_instantBuild;
+
 /** -----------------------------------------------------------------------------------------------
  * Redraw all views, update the GUI, play sound effects, etc.
  */
@@ -496,6 +502,9 @@ DECLARE_PERF_TIMER(GameClient_draw)
 void GameClient::update( void )
 {
 	USE_PERF_TIMER(GameClient_update)
+
+	static wwCVar tweakCvar("g_tweak", "0", "Enables tweak windows", CVAR_BOOL);
+	static wwCVar wireframeCvar("wireframe", "0", "Toggles wireframe mode", CVAR_BOOL);
 
 	ImGui_ImplDX9_NewFrame();
 	ImGui_ImplWin32_NewFrame();
@@ -735,6 +744,58 @@ void GameClient::update( void )
 		else if(AllowMouseClip())
 		{
 			RestoreMouseClip();
+		}
+	}
+	{
+		if (TheGameLogic->isInMultiplayerGame())
+		{
+			// just to be sure we don't enable these in multiplayer
+			g_wireframe = false;
+			g_infiniteHealth = false;
+			g_instantBuild = false;
+		}
+		if (!TheGameLogic->isInMultiplayerGame())
+		{
+			if (g_lastCvarWireframe != wireframeCvar.GetBool())
+			{
+				g_wireframe = wireframeCvar.GetBool();
+				g_lastCvarWireframe = g_wireframe;
+			}
+			if (g_gtweak || tweakCvar.GetBool())
+			{
+				static float f = 0.0f;
+				static int counter = 0;
+				static bool show_demo_window = false;
+				static bool show_another_window = false;
+
+				ImGui::SetNextWindowSize(ImVec2(300, 400));
+				ImGui::Begin("Tweak");
+
+				ImGui::Text("This tweaks some things.");
+				ImGui::Checkbox("Wireframe", &g_wireframe);
+				ImGui::Checkbox("Infinite Health", &g_infiniteHealth);
+				ImGui::Checkbox("Instant Build", &g_instantBuild);
+				
+
+				if (ImGui::Button("Get 10000 Money"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+				{
+					ThePlayerList->getLocalPlayer()->getMoney()->deposit(10000, true);
+				}
+
+				// 
+							//	ImGui::Checkbox("Another Window", &show_another_window);
+
+							//	ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+								//			ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+
+							//	if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+							//		counter++;
+							//	ImGui::SameLine();
+							//	ImGui::Text("counter = %d", counter);
+
+								//					ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+				ImGui::End();
+			}
 		}
 	}
 

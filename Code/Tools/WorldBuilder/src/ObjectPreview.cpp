@@ -23,6 +23,7 @@
 #include <camera.h>
 #include <light.h>
 
+#undef _WINDOWS_
 #include "stdafx.h"
 #include "resource.h"
 
