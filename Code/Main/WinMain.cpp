@@ -947,6 +947,10 @@ int __stdcall WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmd
 			//added a preparse step for this flag because it affects window creation style
 			if (stricmp(token,"-win")==0)
 				ApplicationIsWindowed=true;
+			if (stricmp(token, "-full") == 0)
+			{
+				ApplicationIsWindowed = false;
+			}
 			token = nextParam(NULL, "\" ");	   
 		}
 

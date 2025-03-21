@@ -902,8 +902,7 @@ bool DX8Wrapper::Set_Render_Device(int dev, int width, int height, int bits, int
 			else
 			{
 				// Resize the window to fit this resolution
-//				if (!windowed)
-				if (true)
+				if (!windowed)
 				{
 					// Assume hwnd is your application’s window handle
 					LONG_PTR style = GetWindowLongPtr(_Hwnd, GWL_STYLE);
