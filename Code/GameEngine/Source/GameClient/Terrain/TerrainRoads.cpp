@@ -242,6 +242,7 @@ TerrainRoadCollection::TerrainRoadCollection( void )
 
 	m_idCounter = 1;   ///< MUST start this at 1.
 
+	m_showRoads = true;
 }  // end TerrainRoadCollection
 
 //-------------------------------------------------------------------------------------------------

@@ -73,6 +73,7 @@
 #include "GameClient/SelectionXlat.h"
 #include "GameClient/Shell.h"
 #include "GameClient/TerrainVisual.h"
+#include "GameClient/TerrainRoads.h"
 #include "GameClient/View.h"
 #include "GameClient/VideoPlayer.h"
 #include "GameClient/WindowXlat.h"
@@ -773,6 +774,7 @@ void GameClient::update( void )
 
 				ImGui::Text("This tweaks some things.");
 				ImGui::Checkbox("Wireframe", &g_wireframe);
+				ImGui::Checkbox("Show Roads", &TheTerrainRoads->getShowRoads());
 				ImGui::Checkbox("Infinite Health", &g_infiniteHealth);
 				ImGui::Checkbox("Instant Build", &g_instantBuild);
 				

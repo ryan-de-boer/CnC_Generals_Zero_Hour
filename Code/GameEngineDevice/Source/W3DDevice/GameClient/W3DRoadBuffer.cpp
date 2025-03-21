@@ -3211,6 +3211,10 @@ void W3DRoadBuffer::updateLighting(void)
 void W3DRoadBuffer::drawRoads(CameraClass * camera, TextureClass *cloudTexture, TextureClass *noiseTexture, Bool wireframe,
 															Int minX, Int maxX, Int minY, Int maxY, RefRenderObjListIterator *pDynamicLightsIterator)
 {
+	if (!TheTerrainRoads->getShowRoads())
+	{
+		return;
+	}
 	m_minX = minX*MAP_XY_FACTOR;
 	m_maxX = maxX*MAP_XY_FACTOR;
 	m_minY = minY*MAP_XY_FACTOR;

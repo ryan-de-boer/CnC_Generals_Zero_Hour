@@ -234,6 +234,8 @@ protected:
 	afx_msg void OnValidationFixTeams();
 	afx_msg void OnShowTerrain();
 	afx_msg void OnUpdateShowTerrain(CCmdUI* pCmdUI);
+	afx_msg void OnShowRoads();
+	afx_msg void OnUpdateShowRoads(CCmdUI* pCmdUI);
 	afx_msg int OnCreate(LPCREATESTRUCT lpcs);
 
 

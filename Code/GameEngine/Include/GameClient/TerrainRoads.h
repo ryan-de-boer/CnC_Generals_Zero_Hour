@@ -219,10 +219,14 @@ public:
 
 	TerrainRoadType *findRoadOrBridge( AsciiString name );				///< search roads and bridges
 
+	/// Gets whether to render roads in WorldBuilder and game (see tweak console command).
+	bool& getShowRoads() { return m_showRoads; }
+
 protected:
 
 	TerrainRoadType *m_roadList;				///< list of available roads
 	TerrainRoadType *m_bridgeList;			///< list of available bridges
+	bool m_showRoads; ///< Flag to toggle rendering of roads in WorldBuilder and game (see tweak console command).
 	static UnsignedInt m_idCounter;			///< unique id counter when allocating roads/bridges
 
 };

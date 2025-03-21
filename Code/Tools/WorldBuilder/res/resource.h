@@ -660,6 +660,7 @@
 #define ID_WINDOW_PREVIEW1920x1080      33345
 #define ID_WINDOW_PREVIEW2954x1662      33346
 #endif
+#define ID_VIEW_SHOW_ROADS              33347
 #define IDS_NEW                         61446
 #define IDS_RESIZE                      61447
 #define IDS_REMOVING_INUSE_TEAM         61448
