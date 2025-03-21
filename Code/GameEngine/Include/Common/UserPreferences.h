@@ -85,6 +85,7 @@ public:
 	void setLANIPAddress(UnsignedInt IP);			// convenience function
 	void setOnlineIPAddress(UnsignedInt IP);	// convenience function
 	Bool getAlternateMouseModeEnabled(void);	// convenience function
+	Bool getWindowed(void);
 	Real getScrollFactor(void);								// convenience function
 	Bool getSendDelay(void);									// convenience function
 	Int getFirewallBehavior(void);						// convenience function

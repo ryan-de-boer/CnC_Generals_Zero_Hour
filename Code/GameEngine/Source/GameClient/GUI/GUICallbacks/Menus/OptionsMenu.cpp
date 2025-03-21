@@ -322,6 +322,17 @@ Bool OptionPreferences::getAlternateMouseModeEnabled(void)
 	return FALSE;
 }
 
+Bool OptionPreferences::getWindowed(void)
+{
+	OptionPreferences::const_iterator it = find("Windowed");
+	if (it == end())
+		return TheGlobalData->m_windowed;
+
+	if (stricmp(it->second.str(), "true") == 0) {
+		return TRUE;
+	}
+	return FALSE;
+}
 
 Real OptionPreferences::getScrollFactor(void)
 {
@@ -908,6 +919,8 @@ static void saveOptions( void )
 			TheWritableGlobalData->m_languageFilterPref = false;
 			(*pref)["LanguageFilter"] = "false";
 	}
+
+	(*pref)["Windowed"] = TheGlobalData->m_windowed ? "true" : "false";
 	
 	//-------------------------------------------------------------------------------------------------
 	// send Delay
