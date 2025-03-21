@@ -89,6 +89,8 @@
 //#pragma optimize("", off)
 //#pragma MESSAGE("************************************** WARNING, optimization disabled for debugging purposes")
 #endif
+Bool ApplicationIsWindowed = true;
+Bool WindowedSetViaCommandLine = false;
 
 static SubsystemInterfaceList TheSubsystemListRecord;
 

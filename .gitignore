@@ -7,3 +7,4 @@ Run/Debug/*.dll
 Run/Debug/*.pdb
 Run/Debug/*.map
 *.orig
+Run/*.txt
