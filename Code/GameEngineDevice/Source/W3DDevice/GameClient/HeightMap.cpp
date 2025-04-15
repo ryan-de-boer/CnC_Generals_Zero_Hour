@@ -693,6 +693,8 @@ Int HeightMapRenderObjClass::updateVB(DX8VertexBufferClass	*pVB, char *data, Int
 				memcpy(vbHardware+offset, pCurVertices, 4*sizeof(VERTEX_FORMAT));
 			}
 		}
+
+
 		return 0; //success.
 	}
 	return -1;
@@ -2568,6 +2570,9 @@ void HeightMapRenderObjClass::initDestAlphaLUT(void)
 	}
 }
 
+int g_numIndices = 0;
+std::vector<UnsignedShort> g_indices;
+
 //=============================================================================
 // HeightMapRenderObjClass::initHeightData
 //=============================================================================
@@ -2687,6 +2692,8 @@ Int HeightMapRenderObjClass::initHeightData(Int x, Int y, WorldHeightMap *pMap, 
 		DX8IndexBufferClass::WriteLockClass lockIdxBuffer(m_indexBuffer);
 		UnsignedShort *ib=lockIdxBuffer.Get_Index_Array();
 			
+		int numIndices = 0;
+		g_indices.clear();
 		for (j=0; j<(VERTEX_BUFFER_TILE_LENGTH*VERTEX_BUFFER_TILE_LENGTH*4); j+=VERTEX_BUFFER_TILE_LENGTH*4)
 		{
 			for (i=j; i<(j+VERTEX_BUFFER_TILE_LENGTH*4); i+=4)	//4 vertices per 2x2 block
@@ -2699,9 +2706,18 @@ Int HeightMapRenderObjClass::initHeightData(Int x, Int y, WorldHeightMap *pMap, 
 				ib[4]=i+1;
 				ib[5]=i+2;
 
+				g_indices.push_back(ib[0]);
+				g_indices.push_back(ib[1]);
+				g_indices.push_back(ib[2]);
+				g_indices.push_back(ib[3]);
+				g_indices.push_back(ib[4]);
+				g_indices.push_back(ib[5]);
+
 				ib+=6;	//skip the 6 indices we just filled
+				numIndices += 6;
 			}
 		}
+		g_numIndices = numIndices;
 
 		//Get number of vertex buffers needed to hold current map
 		//First round dimensions to next multiple of VERTEX_BUFFER_TILE_LENGTH since that's our
@@ -3791,6 +3807,484 @@ void HeightMapRenderObjClass::updateCenter(CameraClass *camera , RefRenderObjLis
 //=============================================================================
 //DECLARE_PERF_TIMER(Terrain_Render)
 
+struct Object
+{
+public:
+	std::vector<VertexFormatXYZDUV2> verts;
+};
+std::vector<Object> g_objects;
+std::vector<Object> g_lastObjects;
+
+#include <fbxsdk.h>
+
+void CreateTerrainMesh(FbxScene* Scene)
+{
+	FbxMesh* Mesh = FbxMesh::Create(Scene, "TerrainMesh");
+
+	// Count total vertices
+	size_t totalVerts = 0;
+	for (const auto& obj : g_lastObjects)
+		totalVerts += obj.verts.size();
+
+	Mesh->InitControlPoints((int)totalVerts);
+
+	// Normals
+	FbxLayerElementNormal* Normals = FbxLayerElementNormal::Create(Mesh, "");
+	Normals->SetMappingMode(FbxLayerElement::eByControlPoint);
+	Normals->SetReferenceMode(FbxLayerElement::eDirect);
+
+	// Vertex colors
+	FbxGeometryElementVertexColor* VertexColor = Mesh->CreateElementVertexColor();
+	VertexColor->SetMappingMode(FbxGeometryElement::eByControlPoint);
+	VertexColor->SetReferenceMode(FbxGeometryElement::eDirect);
+
+	// UV Channel 0
+	FbxLayerElementUV* UVs0 = FbxLayerElementUV::Create(Mesh, "UVSet0");
+	UVs0->SetMappingMode(FbxLayerElement::eByPolygonVertex);
+	UVs0->SetReferenceMode(FbxLayerElement::eDirect);
+
+	// UV Channel 1
+	FbxLayerElementUV* UVs1 = FbxLayerElementUV::Create(Mesh, "UVSet1");
+	UVs1->SetMappingMode(FbxLayerElement::eByPolygonVertex);
+	UVs1->SetReferenceMode(FbxLayerElement::eDirect);
+
+	int ctrlPointIndex = 0;
+	std::vector<int> objectVertexOffsets;
+	for (const auto& obj : g_lastObjects)
+	{
+		objectVertexOffsets.push_back(ctrlPointIndex);
+
+		for (const auto& vert : obj.verts)
+		{
+			Mesh->SetControlPointAt(FbxVector4(vert.x, vert.y, vert.z), ctrlPointIndex);
+
+			// Normal (for now default up)
+			Normals->GetDirectArray().Add(FbxVector4(0, 0, 1));
+
+			// Color
+			uint32_t d = vert.diffuse;
+			float r = ((d >> 16) & 0xFF) / 255.0f;
+			float g = ((d >> 8) & 0xFF) / 255.0f;
+			float b = (d & 0xFF) / 255.0f;
+			float a = ((d >> 24) & 0xFF) / 255.0f;
+			VertexColor->GetDirectArray().Add(FbxColor(r, g, b, a));
+
+			++ctrlPointIndex;
+		}
+	}
+
+	// Attach attributes to layer 0
+	FbxLayer* layer0 = Mesh->GetLayer(0);
+	layer0->SetNormals(Normals);
+	layer0->SetVertexColors(VertexColor);
+	layer0->SetUVs(UVs0, FbxLayerElement::eTextureDiffuse);
+
+	// UV Channel 1 -> layer 1
+	if (!Mesh->GetLayer(1)) Mesh->CreateLayer();
+	Mesh->GetLayer(1)->SetUVs(UVs1, FbxLayerElement::eTextureDiffuse);
+
+	// Add polygons
+	size_t objIndex = 0;
+	size_t polyIndex = 0;
+	for (const auto& obj : g_lastObjects)
+	{
+		int baseIndex = objectVertexOffsets[objIndex];
+
+		for (size_t i = 0; i < g_indices.size(); i += 3)
+		{
+			int idx0 = baseIndex + g_indices[i];
+			int idx1 = baseIndex + g_indices[i + 1];
+			int idx2 = baseIndex + g_indices[i + 2];
+
+			Mesh->BeginPolygon();
+			Mesh->AddPolygon(idx0);
+			UVs0->GetDirectArray().Add(FbxVector2(obj.verts[g_indices[i]].u1, 1.0 - obj.verts[g_indices[i]].v1));
+			UVs0->GetIndexArray().Add(polyIndex++);
+			UVs1->GetDirectArray().Add(FbxVector2(obj.verts[g_indices[i]].u2, 1.0 - obj.verts[g_indices[i]].v2));
+			UVs1->GetIndexArray().Add(polyIndex++);
+
+			Mesh->AddPolygon(idx1);
+			UVs0->GetDirectArray().Add(FbxVector2(obj.verts[g_indices[i + 1]].u1, 1.0 - obj.verts[g_indices[i + 1]].v1));
+			UVs0->GetIndexArray().Add(polyIndex++);
+			UVs1->GetDirectArray().Add(FbxVector2(obj.verts[g_indices[i + 1]].u2, 1.0 - obj.verts[g_indices[i + 1]].v2));
+			UVs1->GetIndexArray().Add(polyIndex++);
+
+			Mesh->AddPolygon(idx2);
+			UVs0->GetDirectArray().Add(FbxVector2(obj.verts[g_indices[i + 2]].u1, 1.0 - obj.verts[g_indices[i + 2]].v1));
+			UVs0->GetIndexArray().Add(polyIndex++);
+			UVs1->GetDirectArray().Add(FbxVector2(obj.verts[g_indices[i + 2]].u2, 1.0 - obj.verts[g_indices[i + 2]].v2));
+			UVs1->GetIndexArray().Add(polyIndex++);
+
+			Mesh->EndPolygon();
+		}
+
+		++objIndex;
+	}
+
+	// Create node and add to scene
+	FbxNode* MeshNode = FbxNode::Create(Scene, "TerrainNode");
+	MeshNode->SetNodeAttribute(Mesh);
+	Scene->GetRootNode()->AddChild(MeshNode);
+}
+
+
+void CreateCubeMesh(FbxScene* Scene)
+{
+	FbxMesh* Mesh = FbxMesh::Create(Scene, "CubeMesh");
+
+	// Define 8 vertices for a cube
+	const int NumVerts = 8;
+	FbxVector4 Vertices[NumVerts] = {
+			FbxVector4(-50, -50,  50),
+			FbxVector4(50, -50,  50),
+			FbxVector4(50,  50,  50),
+			FbxVector4(-50,  50,  50),
+			FbxVector4(-50, -50, -50),
+			FbxVector4(50, -50, -50),
+			FbxVector4(50,  50, -50),
+			FbxVector4(-50,  50, -50)
+	};
+
+	Mesh->InitControlPoints(NumVerts);
+	for (int i = 0; i < NumVerts; ++i)
+	{
+		Mesh->SetControlPointAt(Vertices[i], i);
+	}
+
+	// Create cube faces (12 triangles)
+	int Faces[12][3] = {
+			{0, 1, 2}, {0, 2, 3}, // front
+			{1, 5, 6}, {1, 6, 2}, // right
+			{5, 4, 7}, {5, 7, 6}, // back
+			{4, 0, 3}, {4, 3, 7}, // left
+			{3, 2, 6}, {3, 6, 7}, // top
+			{4, 5, 1}, {4, 1, 0}  // bottom
+	};
+
+	for (int i = 0; i < 12; ++i)
+	{
+		Mesh->BeginPolygon(-1, -1, -1, false);
+		Mesh->AddPolygon(Faces[i][0]);
+		Mesh->AddPolygon(Faces[i][1]);
+		Mesh->AddPolygon(Faces[i][2]);
+		Mesh->EndPolygon();
+	}
+
+	// Normals
+	FbxLayerElementNormal* Normals = FbxLayerElementNormal::Create(Mesh, "");
+	Normals->SetMappingMode(FbxLayerElement::eByPolygonVertex);
+	Normals->SetReferenceMode(FbxLayerElement::eDirect);
+
+	// Dummy normals (all pointing +Z for simplicity)
+	for (int i = 0; i < 12 * 3; ++i)
+		Normals->GetDirectArray().Add(FbxVector4(0, 0, 1));
+
+	Mesh->GetLayer(0)->SetNormals(Normals);
+
+	// UV Channel 0
+	FbxLayerElementUV* UVs0 = FbxLayerElementUV::Create(Mesh, "UVSet0");
+	UVs0->SetMappingMode(FbxLayerElement::eByPolygonVertex);
+	UVs0->SetReferenceMode(FbxLayerElement::eDirect);
+
+	// UV Channel 1
+	FbxLayerElementUV* UVs1 = FbxLayerElementUV::Create(Mesh, "UVSet1");
+	UVs1->SetMappingMode(FbxLayerElement::eByPolygonVertex);
+	UVs1->SetReferenceMode(FbxLayerElement::eDirect);
+
+	// Dummy UVs for both channels
+	for (int i = 0; i < 12 * 3; ++i)
+	{
+		float u = (i % 2) ? 1.0f : 0.0f;
+		float v = (i % 3) ? 1.0f : 0.0f;
+
+		UVs0->GetDirectArray().Add(FbxVector2(u, v));
+		UVs1->GetDirectArray().Add(FbxVector2(v, u)); // just flip for 2nd set
+	}
+
+	Mesh->GetLayer(0)->SetUVs(UVs0, FbxLayerElement::eTextureDiffuse);
+
+	// For UV1, create a second layer
+	FbxLayer* UVLayer1 = Mesh->GetLayer(1);
+	if (!UVLayer1) {
+		Mesh->CreateLayer();
+		UVLayer1 = Mesh->GetLayer(1);
+	}
+	UVLayer1->SetUVs(UVs1, FbxLayerElement::eTextureDiffuse);
+
+	// Create node and add mesh
+	FbxNode* MeshNode = FbxNode::Create(Scene, "CubeNode");
+	MeshNode->SetNodeAttribute(Mesh);
+	Scene->GetRootNode()->AddChild(MeshNode);
+}
+
+void SaveFBX(const char* FilePath, bool isCube)
+{
+	FbxManager* SdkManager = FbxManager::Create();
+	FbxIOSettings* IOSettings = FbxIOSettings::Create(SdkManager, IOSROOT);
+	SdkManager->SetIOSettings(IOSettings);
+
+	FbxScene* Scene = FbxScene::Create(SdkManager, "MyScene");
+	if (isCube)
+		CreateCubeMesh(Scene);
+	else
+		CreateTerrainMesh(Scene);
+
+	FbxExporter* Exporter = FbxExporter::Create(SdkManager, "");
+
+	if (!Exporter->Initialize(FilePath, -1, SdkManager->GetIOSettings()))
+	{
+		printf("Failed to initialize FBX exporter: %s\n", Exporter->GetStatus().GetErrorString());
+		return;
+	}
+
+	Exporter->Export(Scene);
+	Exporter->Destroy();
+	SdkManager->Destroy();
+}
+
+void writeFBXCube()
+{
+	SaveFBX("MyCube.fbx", true);
+}
+void writeFBXTerrain()
+{
+	SaveFBX("MyTerrain.fbx", false);
+}
+
+void writeOBJE()
+{
+	const char* fileName = "terrain.obje";
+	FILE* file = fopen(fileName, "w");
+	if (!file)
+	{
+		printf("Failed to open file: %s\n", fileName);
+		return;
+	}
+	// Write header
+	fprintf(file, "#header\n");
+
+	unsigned long long indexOffset = 0;
+	for (size_t o = 0; o < g_lastObjects.size(); ++o)
+	{
+		Object obj = g_lastObjects[o];
+		std::vector<VertexFormatXYZDUV2> verts = obj.verts;
+
+		for (size_t i = 0; i < obj.verts.size(); ++i)
+		{
+			struct VertexFormatXYZDUV2 vert = verts[i];
+			fprintf(file, "v %f %f %f\n", vert.x, vert.y, vert.z);
+			fprintf(file, "n 0.0 0.0 1.0\n");
+
+			//color
+			uint32_t diffuse = vert.diffuse;  // Get color
+
+			// Extract components
+			uint8_t alpha = (diffuse >> 24) & 0xFF;
+			uint8_t red = (diffuse >> 16) & 0xFF;
+			uint8_t green = (diffuse >> 8) & 0xFF;
+			uint8_t blue = diffuse & 0xFF;
+
+			float redNormalized = red / 255.0f;
+			float greenNormalized = green / 255.0f;
+			float blueNormalized = blue / 255.0f;
+			float alphaNormalized = alpha / 255.0f;
+
+			float r, g, b, a;
+			r = redNormalized;
+			g = greenNormalized;
+			b = blueNormalized;
+			a = alphaNormalized;
+			fprintf(file, "c %f %f %f %f\n", r, g, b, a); //<!--color(RGBA)-->
+			fprintf(file, "t1 %f %f\n", vert.u1, vert.v1);
+			fprintf(file, "t2 %f %f\n", vert.u2, vert.v2);
+		}
+
+		// Write indices
+		for (size_t i = 0; i < g_indices.size(); i += 3)
+		{
+			unsigned long long index1 = g_indices[i] + indexOffset;
+			unsigned long long index2 = g_indices[i + 1] + indexOffset;
+			unsigned long long index3 = g_indices[i + 2] + indexOffset;
+			// Try zero indexed
+		  fprintf(file, "f %d %d %d\n", index1, index2, index3);
+		}
+
+		//assume index offset does not need to increase
+		indexOffset += verts.size(); //next object will be offset by x vertices
+	}
+
+	fclose(file);
+}
+
+void writeOgreXml()
+{
+	const char* fileName = "terrain.mesh.xml";
+	FILE* file = fopen(fileName, "w");
+	if (!file)
+	{
+		printf("Failed to open file: %s\n", fileName);
+		return;
+	}
+	// Write header
+	fprintf(file, "<?xml version=\"1.0\"?>\n");
+	fprintf(file, "<mesh><submeshes>\n");
+
+	unsigned long long indexOffset = 0;
+	for (size_t o = 0; o < g_lastObjects.size(); ++o)
+	{
+		Object obj = g_lastObjects[o];
+		std::vector<VertexFormatXYZDUV2> verts = obj.verts;
+		fprintf(file, "<submesh material=\"terrain\" usesharedvertices=\"false\" use32bitindexes=\"false\" operationtype=\"triangle_list\">\n");
+		unsigned long long faceCount = g_indices.size() / 3;
+		fprintf(file, "<faces count=\"%d\">\n", (int)faceCount);
+		
+		// Write indices
+		for (size_t i = 0; i < g_indices.size(); i += 3)
+		{
+			unsigned long long index1 = g_indices[i] + indexOffset;
+			unsigned long long index2 = g_indices[i + 1] + indexOffset;
+			unsigned long long index3 = g_indices[i + 2] + indexOffset;
+			//try zero indexed
+			//1 indexed:
+			//index1++;
+			//index2++;
+			//index3++;
+			//		if (index1 < g_verts.size() && index2 < g_verts.size() && index3 < g_verts.size())
+			{
+				fprintf(file, "<face v1=\"%d\" v2=\"%d\" v3=\"%d\" />\n", index1, index2, index3);
+			}
+		}
+		fprintf(file, "</faces>\n");
+
+		fprintf(file, "<indexbuffer>\n", (int)faceCount);
+
+		// Write indices
+		for (size_t i = 0; i < g_indices.size(); i += 3)
+		{
+			unsigned long long index1 = g_indices[i] + indexOffset;
+			unsigned long long index2 = g_indices[i + 1] + indexOffset;
+			unsigned long long index3 = g_indices[i + 2] + indexOffset;
+			//try zero indexed
+			//1 indexed:
+			//index1++;
+			//index2++;
+			//index3++;
+			//		if (index1 < g_verts.size() && index2 < g_verts.size() && index3 < g_verts.size())
+			{
+				fprintf(file, "<index>%d</index><index>%d</index><index>%d</index>\n", index1, index2, index3);
+			}
+		}
+		fprintf(file, "</indexbuffer>\n");
+
+		fprintf(file, "<geometry vertexcount=\"%d\">\n", (int)obj.verts.size());
+		fprintf(file, "<vertexbuffer positions=\"true\" normals=\"true\" colours_diffuse=\"true\" texture_coords=\"2\" >\n");
+		for (size_t i = 0; i < obj.verts.size(); ++i)
+		{
+			struct VertexFormatXYZDUV2 vert = verts[i];
+			fprintf(file, "<vertex>\n");
+			fprintf(file, "<position x=\"%f\" y=\"%f\" z=\"%f\" />\n", vert.x, vert.y, vert.z);
+			fprintf(file, "<normal x=\"0.0\" y=\"0.0\" z=\"1.0\"/>\n");
+
+
+			//color
+			uint32_t diffuse = vert.diffuse;  // Get color
+
+			// Extract components
+			uint8_t alpha = (diffuse >> 24) & 0xFF;
+			uint8_t red = (diffuse >> 16) & 0xFF;
+			uint8_t green = (diffuse >> 8) & 0xFF;
+			uint8_t blue = diffuse & 0xFF;
+
+			float redNormalized = red / 255.0f;
+			float greenNormalized = green / 255.0f;
+			float blueNormalized = blue / 255.0f;
+			float alphaNormalized = alpha / 255.0f;
+
+			// Print values
+			//std::cout << "A: " << (int)alpha << " R: " << (int)red
+//				<< " G: " << (int)green << " B: " << (int)blue << std::endl;
+			//color
+			
+			float r, g, b, a;
+			//ConvertColor(vert.diffuse, r, g, b, a);
+			r = redNormalized;
+			g = greenNormalized;
+			b = blueNormalized;
+			a = alphaNormalized;
+			fprintf(file, "<colour_diffuse value=\"%f %f %f %f\" />\n", r, g, b, a); //<!--color(RGBA)-->
+//			fprintf(file, "<colour_diffuse value=\"1.000000 1.000000 1.000000 1.000000\" />\n"); //<!--color(RGBA)-->
+			fprintf(file, "<texcoord u=\"%f\" v=\"%f\" />\n", vert.u1, vert.v1);
+			fprintf(file, "<texcoord u=\"%f\" v=\"%f\" />\n", vert.u2, vert.v2);
+			fprintf(file, "</vertex>\n");
+		}
+		fprintf(file, "</vertexbuffer>\n");
+		fprintf(file, "</geometry>\n");
+
+		//assume index offset does not need to increase
+		//indexOffset += verts.size(); //next object will be offset by x vertices
+		fprintf(file, "</submesh>\n");
+	}
+
+	fprintf(file, "</submeshes></mesh>\n");
+	fclose(file);
+}
+
+void WriteObjFile()
+{
+	const char* fileName = "out.obj";
+	FILE* file = fopen(fileName, "w");
+	if (!file)
+	{
+		printf("Failed to open file: %s\n", fileName);
+		return;
+	}
+
+	// Write header
+	fprintf(file, "# Exported OBJ file\n");
+
+	unsigned long long indexOffset = 0;
+	for (size_t o = 0; o < g_lastObjects.size(); ++o)
+	{
+		Object obj = g_lastObjects[o];
+		std::vector<VertexFormatXYZDUV2> verts = obj.verts;
+		fprintf(file, "o %d_tile\n", o);
+		fprintf(file, "usemtl terrain\n", o);
+
+		// Write vertices
+		for (size_t i = 0; i < verts.size(); ++i)
+		{
+			struct VertexFormatXYZDUV2 vert = verts[i];
+			fprintf(file, "v %f %f %f\n", vert.x, vert.y, vert.z);
+			fprintf(file, "vt %f %f\n", vert.u1, vert.v1);
+		}
+
+		// Write indices
+		for (size_t i = 0; i < g_indices.size(); i += 3)
+		{
+			unsigned long long index1 = g_indices[i] + indexOffset;
+			unsigned long long index2 = g_indices[i + 1]+ indexOffset;
+			unsigned long long index3 = g_indices[i + 2]+ indexOffset;
+			//1 indexed:
+			index1++;
+			index2++;
+			index3++;
+			//		if (index1 < g_verts.size() && index2 < g_verts.size() && index3 < g_verts.size())
+			{
+				fprintf(file, "f %d/%d %d/%d %d/%d\n", index1, index1, index2, index2, index3, index3);
+			}
+		}
+		indexOffset += verts.size(); //next object will be offset by x vertices
+
+
+	}
+
+
+
+
+	fclose(file);
+	printf("OBJ file written successfully to %s\n", fileName);
+}
+
 void HeightMapRenderObjClass::Render(RenderInfoClass & rinfo)
 {
 	//USE_PERF_TIMER(Terrain_Render)
@@ -3945,7 +4439,9 @@ void HeightMapRenderObjClass::Render(RenderInfoClass & rinfo)
  				W3DShaderManager::setShader(st, pass);
 			}
 		}
-
+		
+		g_lastObjects = g_objects;
+		g_objects.clear();
 		for (j=0; j<m_numVBTilesY; j++)
 			for (i=0; i<m_numVBTilesX; i++)
 			{
@@ -3960,7 +4456,24 @@ void HeightMapRenderObjClass::Render(RenderInfoClass & rinfo)
 					numPolys /= 4;
 					numVertex /= 4;
 				}
-				DX8Wrapper::Set_Vertex_Buffer(m_vertexBufferTiles[j*m_numVBTilesX+i]);
+				DX8VertexBufferClass* vbb = m_vertexBufferTiles[j * m_numVBTilesX + i];
+				DX8Wrapper::Set_Vertex_Buffer(vbb);
+
+				char msg[1000];
+				strcpy(msg, "");
+				sprintf(msg, "FVF: %d", vbb->FVF_Info().FVF);
+//				MessageBox(NULL, msg, "FVF", NULL); //578
+				if (vbb->FVF_Info().FVF == DX8_FVF_XYZDUV2)
+				{
+					std::vector<VertexFormatXYZDUV2> verts = vbb->GetVerts();
+					Object o;
+					o.verts = verts;
+					g_objects.push_back(o);
+				}
+				else
+				{
+					MessageBox(NULL, "unknown", "", MB_OK);
+				}
 #ifdef PRE_TRANSFORM_VERTEX
 				if (m_xformedVertexBuffer && pass==0) {
 					// Note - m_xformedVertexBuffer should only be used for non T&L hardware.  jba.

@@ -226,6 +226,173 @@ void W3DTerrainVisual::update( void )
 
 }  // end update
 
+typedef struct {
+	char fourCC[4];   // "DDS "
+	uint32_t size;     // Size of the header (124 bytes)
+	uint32_t flags;
+	uint32_t height;
+	uint32_t width;
+	uint32_t pitchOrLinearSize;
+	uint32_t depth;
+	uint32_t mipMapCount;
+	uint32_t reserved1[11];
+	struct {
+		uint32_t size;
+		uint32_t flags;
+		char fourCC[4];
+		uint32_t rgbBitCount;
+		uint32_t rBitMask;
+		uint32_t gBitMask;
+		uint32_t bBitMask;
+		uint32_t aBitMask;
+	} pixelFormat;
+	struct {
+		uint32_t caps1;
+		uint32_t caps2;
+		uint32_t caps3;
+		uint32_t caps4;
+	} caps;
+	uint32_t reserved2;
+} DDSHeader;
+
+bool SaveTextureToDDSFile(IDirect3DTexture8* texture, const char* filename) {
+	if (!texture || !filename) return false;
+
+	D3DSURFACE_DESC desc;
+	texture->GetLevelDesc(0, &desc);
+
+	if (desc.Format != D3DFMT_A8R8G8B8 && desc.Format != D3DFMT_X8R8G8B8 &&
+		desc.Format != D3DFMT_A1R5G5B5) {
+		printf("Unsupported format. Only D3DFMT_A8R8G8B8, D3DFMT_X8R8G8B8, and D3DFMT_A1R5G5B5 are supported.\n");
+		return false;
+	}
+
+	FILE* file = fopen(filename, "wb");
+	if (!file) return false;
+
+	DDSHeader header = { 0 };
+	memcpy(header.fourCC, "DDS ", 4);
+	header.size = 124;
+	header.flags = 0x00021007;
+	header.height = desc.Height;
+	header.width = desc.Width;
+	header.pixelFormat.size = 32;
+	header.caps.caps1 = 0x1000;
+
+	if (desc.Format == D3DFMT_A1R5G5B5) {
+		header.pitchOrLinearSize = desc.Width * 2;  // 16-bit per pixel
+		header.pixelFormat.flags = 0x41;            // DDPF_RGB | DDPF_ALPHAPIXELS
+		header.pixelFormat.rgbBitCount = 16;
+		header.pixelFormat.rBitMask = 0x7C00;
+		header.pixelFormat.gBitMask = 0x03E0;
+		header.pixelFormat.bBitMask = 0x001F;
+		header.pixelFormat.aBitMask = 0x8000;
+	}
+	else {
+		header.pitchOrLinearSize = desc.Width * 4;
+		header.pixelFormat.flags = 0x41;
+		header.pixelFormat.rgbBitCount = 32;
+		header.pixelFormat.rBitMask = 0x00FF0000;
+		header.pixelFormat.gBitMask = 0x0000FF00;
+		header.pixelFormat.bBitMask = 0x000000FF;
+		header.pixelFormat.aBitMask = 0xFF000000;
+	}
+
+	fwrite(&header, sizeof(header), 1, file);
+
+	D3DLOCKED_RECT lockedRect;
+	if (SUCCEEDED(texture->LockRect(0, &lockedRect, NULL, D3DLOCK_READONLY))) {
+		for (UINT y = 0; y < desc.Height; ++y) {
+			fwrite((BYTE*)lockedRect.pBits + y * lockedRect.Pitch, 1, header.pitchOrLinearSize, file);
+		}
+		texture->UnlockRect(0);
+	}
+
+	fclose(file);
+	return true;
+}
+
+extern std::vector<UnsignedShort> g_indices;
+
+void WriteObjFile();
+void writeOgreXml();
+void writeOBJE();
+void writeFBXCube();
+void writeFBXTerrain();
+
+void W3DTerrainVisual::saveHeightMap()
+{
+	char msg[1000];
+	strcpy(msg, "");
+	sprintf(msg, "%d x %d, size: %d, random %d, alpha file path: %s, indices: %d", m_terrainHeightMap->m_width, m_terrainHeightMap->m_height, m_terrainHeightMap->m_dataSize, m_terrainHeightMap->m_data[100], m_terrainHeightMap->getAlphaTerrainTexture()->Get_Texture_Name(), g_indices.size());
+
+	WriteObjFile();
+	writeOgreXml();
+	writeOBJE();
+	writeFBXCube();
+	writeFBXTerrain();
+
+	IDirect3DTexture8* tex = m_terrainHeightMap->getTerrainTexture()->Peek_DX8_Texture();
+	SaveTextureToDDSFile(tex, "terrain_tex.dds");
+
+	IDirect3DTexture8* alphaTex = m_terrainHeightMap->getAlphaTerrainTexture()->Peek_DX8_Texture();
+	SaveTextureToDDSFile(alphaTex, "alpha_tex.dds");
+
+	IDirect3DTexture8* edgeTex = m_terrainHeightMap->getEdgeTerrainTexture()->Peek_DX8_Texture();
+	SaveTextureToDDSFile(edgeTex, "edge_tex.dds");
+
+	MessageBox(NULL, msg, "info", NULL);
+
+	// Define the file name
+	const char* filename = "output.ppm";
+
+	// Open file for writing
+	FILE* file = fopen(filename, "w");
+	if (!file) {
+		perror("Failed to open file for writing");
+		return;
+	}
+
+	// Image parameters
+	int width = m_terrainHeightMap->m_width;
+	int height = m_terrainHeightMap->m_height;
+	int maxColorValue = 255;
+
+	// Write the PPM header
+	fprintf(file, "P3\n");
+	fprintf(file, "%d %d\n", width, height);
+	fprintf(file, "%d\n", maxColorValue);
+
+	// Define pixel data (R, G, B for each pixel)
+	// Write pixel data
+	// Iterate over rows in **reverse order** to flip vertically
+	for (int y = height - 1; y >= 0; y--) {
+		for (int x = 0; x < width; x++) {
+			// Calculate the index for the current pixel
+			int index = y * width + x;
+
+			// Make sure we don't read out of bounds
+			if (index >= width * height) {
+				printf("Error: Index out of bounds at pixel (%d, %d).\n", x, y);
+				fclose(file);
+				return;
+			}
+
+			// Extract the grayscale value
+			int gray = m_terrainHeightMap->m_data[index];  // This is a single UnsignedByte value
+
+			// Write grayscale value as RGB (R=G=B)
+			fprintf(file, "%d %d %d ", gray, gray, gray);
+		}
+		fprintf(file, "\n"); // Newline at the end of each row
+	}
+
+	// Close the file
+	fclose(file);
+
+	printf("PPM file '%s' written successfully.\n", filename);
+}
+
 //-------------------------------------------------------------------------------------------------
 /** load method for W3D visual terrain */
 //-------------------------------------------------------------------------------------------------
@@ -273,6 +440,7 @@ Bool W3DTerrainVisual::load( AsciiString filename )
 	ChunkInputStream *pStrm = &fileStrm;
 	// allocate new height map data to read from file
 	m_terrainHeightMap = NEW WorldHeightMap(pStrm);
+	TheWritableGlobalData->addHeightMapSaver(this);
 
 	// Add any lights loaded by map.
 	MapObject *pMapObj = MapObject::getFirstMapObject();

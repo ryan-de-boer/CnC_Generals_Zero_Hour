@@ -2,7 +2,13 @@
 sampler2D Tex0 : register(s0);
 sampler2D Tex1 : register(s1);
 sampler2D Tex2 : register(s2);
-sampler2D Tex3 : register(s3);
+
+// Only just have enough texture samplers for the 5 textures.
+sampler2D TexA : register(s3);
+sampler2D TexB : register(s4);
+sampler2D TexC : register(s5);
+sampler2D TexD : register(s6);
+sampler2D TexE : register(s7);
 
 struct PS_INPUT
 {
@@ -17,7 +23,8 @@ float4 main(PS_INPUT input) : COLOR
     float4 color0 = tex2D(Tex0, input.TexCoord);
     float4 color1 = tex2D(Tex1, input.TexCoord1);
     float4 color2 = tex2D(Tex2, input.TexCoord);
-    float4 color3 = tex2D(Tex3, input.TexCoord);
+
+    float4 color3 = tex2D(TexA, input.TexCoord);
     
     // Perform linear interpolation between texture1 and texture0 using diffuse alpha.
     // This matches the DX8 "lrp r0, v0.a, t1, t0" instruction:
@@ -29,5 +36,6 @@ float4 main(PS_INPUT input) : COLOR
 
     // Modulate with texture 2 and texture 3 sequentially
     float4 modulated = lit * color2;
-    return modulated;
+//    return modulated;
+    return float4(1.0,1.0,0.0,1.0);
 }

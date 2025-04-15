@@ -8,3 +8,6 @@ Run/Debug/*.pdb
 Run/Debug/*.map
 *.orig
 Run/*.txt
+Run/libfbxsdk.dll
+Run/output/*
+postbuild.bat

@@ -44,7 +44,7 @@ class WorldHeightMap;
 //-------------------------------------------------------------------------------------------------
 /** W3D impelmentation of visual terrain details singleton */
 //-------------------------------------------------------------------------------------------------
-class W3DTerrainVisual : public TerrainVisual
+class W3DTerrainVisual : public TerrainVisual, public IHeightMapSaver
 {
 
 public:
@@ -66,6 +66,8 @@ public:
 	/** intersect the ray with the terrain, if a hit occurs TRUE is returned
 	and the result point on the terrain is returned in "result" */
 	virtual Bool intersectTerrain( Coord3D *rayStart, Coord3D *rayEnd, Coord3D *result );
+
+	virtual void saveHeightMap();
 
 	//
 	// water methods

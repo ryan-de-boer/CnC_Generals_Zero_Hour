@@ -430,6 +430,7 @@ void WorldHeightMap::freeListOfMapObjects(void)
 	MapObject::getWorldDict()->clear();
 }
 
+WorldHeightMap* g_WorldHeightMap = nullptr;
 
 /**
  WorldHeightMap - create a new height map for class WorldHeightMap.
@@ -449,6 +450,7 @@ WorldHeightMap::WorldHeightMap():
 	m_numCliffInfo(1),
 	m_terrainTex(NULL), m_alphaTerrainTex(NULL), m_numBitmapTiles(0), m_numBlendedTiles(1)
 {
+	g_WorldHeightMap = this;
 	Int i;
 	for (i=0; i<NUM_SOURCE_TILES; i++) {
 		m_sourceTiles[i] = NULL;

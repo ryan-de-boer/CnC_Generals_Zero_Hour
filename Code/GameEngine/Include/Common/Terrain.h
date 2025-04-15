@@ -42,4 +42,10 @@
 // DEFINE /////////////////////////////////////////////////////////////////////
 #define MAX_TERRAIN_NAME_LEN 64  ///< max size of map filename with extenstion
 
+class IHeightMapSaver
+{
+public:
+	virtual void saveHeightMap() = 0;
+};
+
 #endif  // end __TERRAIN_H_

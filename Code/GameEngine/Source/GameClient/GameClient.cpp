@@ -492,6 +492,7 @@ void GameClient::registerDrawable( Drawable *draw )
 bool g_wireframe = false;
 bool g_lastCvarWireframe = false;
 bool g_gtweak = false;
+bool g_showTerrainOnly = false;
 extern bool g_infiniteHealth;
 extern bool g_instantBuild;
 
@@ -776,27 +777,20 @@ void GameClient::update( void )
 				ImGui::Checkbox("Wireframe", &g_wireframe);
 				ImGui::Checkbox("Show Roads", &TheTerrainRoads->getShowRoads());
 				ImGui::Checkbox("Show Terrain Normals", &TheWritableGlobalData->m_showTerrainNormals);
+				ImGui::Checkbox("Show Terrain Only", &g_showTerrainOnly);
 				ImGui::Checkbox("Infinite Health", &g_infiniteHealth);
 				ImGui::Checkbox("Instant Build", &g_instantBuild);
 				
-
-				if (ImGui::Button("Get 10000 Money"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+				if (ImGui::Button("Get 10000 Money"))
 				{
 					ThePlayerList->getLocalPlayer()->getMoney()->deposit(10000, true);
 				}
 
-				// 
-							//	ImGui::Checkbox("Another Window", &show_another_window);
+				if (ImGui::Button("Export Heightmap"))
+				{
+					TheGlobalData->m_heightMapSaver->saveHeightMap();
+				}
 
-							//	ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-								//			ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-							//	if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-							//		counter++;
-							//	ImGui::SameLine();
-							//	ImGui::Text("counter = %d", counter);
-
-								//					ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 				ImGui::End();
 			}
 		}

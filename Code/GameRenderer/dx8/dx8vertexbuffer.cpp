@@ -666,7 +666,31 @@ void DX8VertexBufferClass::Copy(const Vector3* loc, const Vector3* norm, const V
 	}
 }
 
+//std::vector<VertexFormatXYZDUV2> g_verts;
 // ----------------------------------------------------------------------------
+
+std::vector<VertexFormatXYZDUV2> DX8VertexBufferClass::GetVerts()
+{
+	WWASSERT(FVF_Info().Get_FVF() == DX8_FVF_XYZDUV2);
+
+	std::vector<VertexFormatXYZDUV2> verts;
+	verts.clear();
+	VertexBufferClass::WriteLockClass l(this);
+	VertexFormatXYZDUV2* vertArray = (VertexFormatXYZDUV2*)l.Get_Vertex_Array();
+	for (unsigned v = 0; v < VertexCount; ++v) {
+		VertexFormatXYZDUV2 saveVert;
+		saveVert.x = vertArray[v].x;
+		saveVert.y = vertArray[v].y;
+		saveVert.z = vertArray[v].z;
+		saveVert.u1 = vertArray[v].u1;
+		saveVert.v1 = vertArray[v].v1;
+		saveVert.u2 = vertArray[v].u2;
+		saveVert.v2 = vertArray[v].v2;
+		saveVert.diffuse = vertArray[v].diffuse;
+		verts.push_back(saveVert);
+	}
+	return verts;
+}
 
 void DX8VertexBufferClass::Copy(const Vector3* loc, const Vector2* uv, const Vector4* diffuse, unsigned first_vertex, unsigned count)
 {

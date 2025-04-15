@@ -279,7 +279,9 @@ protected:
 	TextureClass *m_stageThreeTexture;	///<light/noise map texture
 	AsciiString m_macroTextureName; ///< Name for stage 3 texture.
 	TextureClass *m_destAlphaTexture;	///< Texture holding destination alpha LUT for water depth.
+	public:
 	DX8VertexBufferClass	**m_vertexBufferTiles;	///<collection of smaller vertex buffers that make up 1 heightmap
+	protected:
 	char	**m_vertexBufferBackup;	///< In memory copy of the vertex buffer data for quick update of dynamic lighting.
 
 	W3DTreeBuffer *m_treeBuffer; ///< Class for drawing trees and other alpha objects.

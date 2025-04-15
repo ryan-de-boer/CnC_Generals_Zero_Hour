@@ -1279,7 +1279,12 @@ class TerrainShaderPixelShader : public W3DShaderInterface
 	IDirect3DVertexShader9* m_terrainVertexShader;
 	IDirect3DPixelShader9* m_dwBasePixelShader;	///<handle to terrain D3D pixel shader
 	IDirect3DPixelShader9* m_dwBaseNoise1PixelShader;	///<handle to terrain/single noise D3D pixel shader
+
+	// shaders\\terrainnoise2.hlsl
 	IDirect3DPixelShader9* m_dwBaseNoise2PixelShader;	///<handle to terrain/double noise D3D pixel shader
+
+	//terrain_big.hlsl
+	IDirect3DPixelShader9* m_terrainBigPixelShader;
 
 	virtual Int set(Int pass);		///<setup shader for the specified rendering pass.
 	virtual void reset(void);		///<do any custom resetting necessary to bring W3D in sync.
@@ -1692,6 +1697,7 @@ Int TerrainShaderPixelShader::shutdown(void)
 	m_dwBasePixelShader=NULL;
 	m_dwBaseNoise1PixelShader=NULL;
 	m_dwBaseNoise2PixelShader=NULL;
+	m_terrainBigPixelShader = nullptr;
 
 	return TRUE;
 }
@@ -1736,6 +1742,10 @@ Int TerrainShaderPixelShader::init( void )
 			if (FAILED(hr))
 				return FALSE;
 
+			hr = W3DShaderManager::LoadAndCreateD3DShader("shaders\\terrain_big.hlsl", &Declaration[0], 0, false, nullptr, &m_terrainBigPixelShader);
+			if (FAILED(hr))
+				return FALSE;
+
 			W3DShaders[W3DShaderManager::ST_TERRAIN_BASE]=&terrainShaderPixelShader;
 			W3DShaders[W3DShaderManager::ST_TERRAIN_BASE_NOISE1]=&terrainShaderPixelShader;
 			W3DShaders[W3DShaderManager::ST_TERRAIN_BASE_NOISE2]=&terrainShaderPixelShader;
@@ -1766,7 +1776,8 @@ Int TerrainShaderPixelShader::set(Int pass)
 	DX8Wrapper::SetTexture(1, layerTexture);
 	DX8Wrapper::SetTexture(2, lightTexture);
 
-	DX8Wrapper::SetPixelShader(m_dwBaseNoise2PixelShader);
+//	DX8Wrapper::SetPixelShader(m_dwBaseNoise2PixelShader); //shaders\\terrainnoise2.hlsl
+	DX8Wrapper::SetPixelShader(m_terrainBigPixelShader); //shaders\\terrain_big.hlsl
 
 	return TRUE;
 }
