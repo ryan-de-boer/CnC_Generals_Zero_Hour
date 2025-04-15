@@ -7,7 +7,7 @@ sampler2D Tex3 : register(s3);
 struct PS_INPUT
 {
     float2 TexCoord : TEXCOORD0;
-    float2 TexCoord : TEXCOORD1;
+    float2 TexCoord1 : TEXCOORD1;
     float4 Diffuse  : COLOR0; // Diffuse color; its alpha is used as blend factor
 };
 
