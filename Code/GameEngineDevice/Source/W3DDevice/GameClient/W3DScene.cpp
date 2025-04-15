@@ -1025,6 +1025,8 @@ void RTS3DScene::Render(RenderInfoClass & rinfo)
 	}
 }
 
+extern bool g_showTerrainOnly;
+
 //=============================================================================
 // RTS3DScene::Customized_Renderer
 //=============================================================================
@@ -1092,6 +1094,7 @@ void RTS3DScene::Customized_Render( RenderInfoClass &rinfo )
 		robj->Render(rinfo);
 	}
 
+	m_drawTerrainOnly = g_showTerrainOnly;
 	if (m_drawTerrainOnly) {
 		return;
 	}

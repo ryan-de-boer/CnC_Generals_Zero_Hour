@@ -47,6 +47,7 @@
 #include "wwdebug.h"
 #include "refcount.h"
 #include "dx8fvf.h"
+#include <vector>
 
 const unsigned dynamic_fvf_type=D3DFVF_XYZ|D3DFVF_NORMAL|D3DFVF_TEX2|D3DFVF_DIFFUSE;
 
@@ -230,6 +231,8 @@ public:
 	void Copy(const Vector3* loc, const Vector3* norm, const Vector2* uv, unsigned first_vertex, unsigned count);
 	void Copy(const Vector3* loc, const Vector3* norm, const Vector2* uv, const Vector4* diffuse, unsigned first_vertex, unsigned count);
 	void Copy(const Vector3* loc, const Vector2* uv, const Vector4* diffuse, unsigned first_vertex, unsigned count);
+
+	std::vector<VertexFormatXYZDUV2> GetVerts();
 
 protected:
 	IDirect3DVertexBuffer8*		VertexBuffer;

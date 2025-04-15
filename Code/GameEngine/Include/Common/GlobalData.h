@@ -39,6 +39,7 @@
 #include "Common/SubsystemInterface.h"
 #include "GameClient/Color.h"
 #include "Common/STLTypedefs.h"
+#include "Common/Terrain.h"
 
 // FORWARD DECLARATIONS ///////////////////////////////////////////////////////////////////////////
 struct FieldParse;
@@ -74,6 +75,11 @@ public:
 	Bool setTimeOfDay( TimeOfDay tod );		///< Use this function to set the Time of day;
 
 	static void parseGameDataDefinition( INI* ini );
+
+	void addHeightMapSaver(IHeightMapSaver* heightMapSaver)
+	{
+		m_heightMapSaver = heightMapSaver;
+	}
 
 	//-----------------------------------------------------------------------------------------------
 	struct TerrainLighting
@@ -491,6 +497,7 @@ public:
 	// the trailing '\' is included!
 	AsciiString getPath_UserData() const;
 
+	IHeightMapSaver* m_heightMapSaver;
 private:
 
 	static const FieldParse s_GlobalDataFieldParseTable[];
