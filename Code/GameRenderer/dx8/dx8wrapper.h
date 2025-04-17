@@ -425,7 +425,7 @@ public:
 	static void					Set_Render_Target (IDirect3DSurface8 *render_target);
 	static void					Set_Render_Target (IDirect3DSwapChain8 *swap_chain);
 
-	static IDirect3DDevice8* _Get_D3D_Device8() { return D3DDevice; }
+	//static IDirect3DDevice8* _Get_D3D_Device8() { return D3DDevice; }
 	//static IDirect3D8* _Get_D3D8() { return D3DInterface; }
 	static void Invalidate_Cached_Render_States(void);
 
@@ -435,6 +435,14 @@ public:
 
 	static HRESULT SetTexture(DWORD Stage, IDirect3DBaseTexture8* pTexture) {
 		return D3DDevice->SetTexture(Stage, pTexture);
+	}
+
+	static HRESULT CreateVertexDeclaration(CONST D3DVERTEXELEMENT9* pVertexElements, IDirect3DVertexDeclaration9** ppDecl) {
+		return D3DDevice->CreateVertexDeclaration(pVertexElements, ppDecl);
+	}
+
+	static HRESULT SetVertexDeclaration(IDirect3DVertexDeclaration9* pDecl) {
+		return D3DDevice->SetVertexDeclaration(pDecl);
 	}
 
 	static HRESULT SetRenderState(D3DRENDERSTATETYPE State, DWORD Value) {
