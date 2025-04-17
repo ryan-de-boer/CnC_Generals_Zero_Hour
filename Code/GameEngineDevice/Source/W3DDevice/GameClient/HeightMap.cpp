@@ -4844,10 +4844,16 @@ void HeightMapRenderObjClass::renderTrees(CameraClass * camera)
 	}
 }
 
+//useful to turn off when debugging the main terrain shader
+extern bool g_showTerrainCorners;
+
 /** Renders an additoinal terrain pass including only those tiles which have more than 2 textures
 blended together.  Used primarily for corner cases where 3 different textures meet.*/
 void HeightMapRenderObjClass::renderExtraBlendTiles(void)
 {
+	if (!g_showTerrainCorners)
+		return;
+
 //	return; //these are those annoying tiles that look strange, but they look ok now
 	//this is in FFP. might need to port to hlsl if we want big textures
 	//maybe do roads at same time, they both use ST_ROAD_BASE_NOISE12
