@@ -495,6 +495,7 @@ bool g_gtweak = false;
 bool g_showTerrainOnly = false;
 extern bool g_infiniteHealth;
 extern bool g_instantBuild;
+extern bool g_useBigShader;
 
 /** -----------------------------------------------------------------------------------------------
  * Redraw all views, update the GUI, play sound effects, etc.
@@ -778,6 +779,8 @@ void GameClient::update( void )
 				ImGui::Checkbox("Show Roads", &TheTerrainRoads->getShowRoads());
 				ImGui::Checkbox("Show Terrain Normals", &TheWritableGlobalData->m_showTerrainNormals);
 				ImGui::Checkbox("Show Terrain Only", &g_showTerrainOnly);
+				ImGui::Checkbox("Use Big Shader", &g_useBigShader);
+				
 				ImGui::Checkbox("Infinite Health", &g_infiniteHealth);
 				ImGui::Checkbox("Instant Build", &g_instantBuild);
 				

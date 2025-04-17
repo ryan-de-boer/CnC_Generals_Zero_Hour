@@ -425,7 +425,7 @@ public:
 	static void					Set_Render_Target (IDirect3DSurface8 *render_target);
 	static void					Set_Render_Target (IDirect3DSwapChain8 *swap_chain);
 
-	//static IDirect3DDevice8* _Get_D3D_Device8() { return D3DDevice; }
+	static IDirect3DDevice8* _Get_D3D_Device8() { return D3DDevice; }
 	//static IDirect3D8* _Get_D3D8() { return D3DInterface; }
 	static void Invalidate_Cached_Render_States(void);
 
@@ -457,6 +457,9 @@ public:
 	}
 	static HRESULT SetVertexShaderConstantF(UINT StartRegister, CONST float* pConstantData, UINT Vector4fCount) {
 		return D3DDevice->SetVertexShaderConstantF(StartRegister, pConstantData, Vector4fCount);
+	}
+	static HRESULT SetPixelShaderConstantF(UINT StartRegister, CONST float* pConstantData, UINT Vector4fCount) {
+		return D3DDevice->SetPixelShaderConstantF(StartRegister, pConstantData, Vector4fCount);
 	}
 	static HRESULT SetStreamSource(UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInBytes, UINT Stride) {
 		return D3DDevice->SetStreamSource(StreamNumber, pStreamData, OffsetInBytes, Stride);

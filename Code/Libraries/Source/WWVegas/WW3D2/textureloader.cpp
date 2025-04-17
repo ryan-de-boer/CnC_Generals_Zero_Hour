@@ -1125,6 +1125,12 @@ void TextureLoadTaskClass::Begin_Texture_Load()
 
 			width=targa.Header.Width>>ReductionFactor;
 			height=targa.Header.Height>>ReductionFactor;
+			if (strstr(Texture->Get_Full_Path(), "keep_big"))
+			{
+				// Some textures we want to keep big!
+				width = targa.Header.Width;
+				height = targa.Header.Height;
+			}
 			unsigned ow=width;
 			unsigned oh=height;
 			TextureLoader::Validate_Texture_Size(width,height);

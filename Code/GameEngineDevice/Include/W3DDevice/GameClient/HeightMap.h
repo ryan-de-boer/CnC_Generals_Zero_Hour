@@ -277,6 +277,11 @@ protected:
 	TextureClass *m_stageOneTexture;	///<transparent edging texture
 	CloudMapTerrainTextureClass *m_stageTwoTexture;	///<Cloud map texture
 	TextureClass *m_stageThreeTexture;	///<light/noise map texture
+	TextureClass* m_bigATexture;
+	TextureClass* m_bigBTexture;
+	TextureClass* m_bigCTexture;
+	TextureClass* m_bigDTexture;
+	TextureClass* m_bigETexture;
 	AsciiString m_macroTextureName; ///< Name for stage 3 texture.
 	TextureClass *m_destAlphaTexture;	///< Texture holding destination alpha LUT for water depth.
 	public:

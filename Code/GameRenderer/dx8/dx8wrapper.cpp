@@ -2036,6 +2036,7 @@ void DX8Wrapper::Draw_Triangles(
 	unsigned short min_vertex_index,
 	unsigned short vertex_count)
 {
+	// squares here?
 	Draw(D3DPT_TRIANGLELIST,start_index,polygon_count,min_vertex_index,vertex_count);
 }
 
