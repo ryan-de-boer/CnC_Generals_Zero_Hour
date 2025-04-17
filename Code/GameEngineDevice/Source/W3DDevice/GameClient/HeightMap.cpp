@@ -109,6 +109,8 @@
 
 static ShaderClass detailOpaqueShader(SC_DETAIL_BLEND);
 
+extern bool g_renderTerrain;
+
 //-----------------------------------------------------------------------------
 //         Global Functions & Data                                              
 //-----------------------------------------------------------------------------
@@ -4538,6 +4540,7 @@ void HeightMapRenderObjClass::Render(RenderInfoClass & rinfo)
 				}
 #endif				
 				if (Is_Hidden() == 0) {
+					if (g_renderTerrain)
 					DX8Wrapper::Draw_Triangles(	0,numPolys, 0,	numVertex);
 				}
 
@@ -4606,13 +4609,29 @@ void HeightMapRenderObjClass::Render(RenderInfoClass & rinfo)
 
 		if (TheTerrainTracksRenderObjClassSystem)
 			TheTerrainTracksRenderObjClassSystem->flush();
+
 // jmarshall - fix me
-		//if (m_shroud && rinfo.Additional_Pass_Count())
-		//{
-		//	rinfo.Peek_Additional_Pass(0)->Install_Materials();
-		//	renderTerrainPass(&rinfo.Camera);
-		//	rinfo.Peek_Additional_Pass(0)->UnInstall_Materials();
-		//}
+//		if (m_shroud && rinfo.Additional_Pass_Count())
+//		{
+//			m_shroud->
+////			rinfo.Peek_Additional_Pass(0)->Install_Materials();
+//
+//			TextureClass* tex = W3DShaderManager::getShaderTexture(0);
+//			if (tex == nullptr)
+//			{
+//				int a = 1;
+//				a++;
+//			}
+//			IDirect3DTexture9* albedoTexture = W3DShaderManager::getShaderTexture(0)->Peek_DX8_Texture();
+//
+//			//setup base pass	
+//			DX8Wrapper::SetTexture(0, albedoTexture);
+//			DX8Wrapper::SetTexture(1, nullptr);
+//			DX8Wrapper::SetTexture(2, nullptr);
+//			DX8Wrapper::SetTexture(3, nullptr);
+//			renderTerrainPass(&rinfo.Camera);
+//			//rinfo.Peek_Additional_Pass(0)->UnInstall_Materials();
+//		}
 // jmarshall - fix me
 		ShaderClass::Invalidate();
 		DX8Wrapper::Apply_Render_State_Changes();
