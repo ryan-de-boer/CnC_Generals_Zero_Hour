@@ -439,6 +439,14 @@ public:
 		return D3DDevice->SetTexture(Stage, pTexture);
 	}
 
+	static HRESULT CreateVertexDeclaration(CONST D3DVERTEXELEMENT9* pVertexElements, IDirect3DVertexDeclaration9** ppDecl) {
+		return D3DDevice->CreateVertexDeclaration(pVertexElements, ppDecl);
+	}
+
+	static HRESULT SetVertexDeclaration(IDirect3DVertexDeclaration9* pDecl) {
+		return D3DDevice->SetVertexDeclaration(pDecl);
+	}
+
 	static HRESULT SetRenderState(D3DRENDERSTATETYPE State, DWORD Value) {
 		return D3DDevice->SetRenderState(State, Value);
 	}
@@ -459,6 +467,9 @@ public:
 	}
 	static HRESULT SetVertexShaderConstantF(UINT StartRegister, CONST float* pConstantData, UINT Vector4fCount) {
 		return D3DDevice->SetVertexShaderConstantF(StartRegister, pConstantData, Vector4fCount);
+	}
+	static HRESULT SetPixelShaderConstantF(UINT StartRegister, CONST float* pConstantData, UINT Vector4fCount) {
+		return D3DDevice->SetPixelShaderConstantF(StartRegister, pConstantData, Vector4fCount);
 	}
 	static HRESULT SetStreamSource(UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInBytes, UINT Stride) {
 		return D3DDevice->SetStreamSource(StreamNumber, pStreamData, OffsetInBytes, Stride);

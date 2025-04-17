@@ -1330,6 +1330,11 @@ HeightMapRenderObjClass::HeightMapRenderObjClass(void)
 	m_stageOneTexture=NULL;
 	m_stageTwoTexture=NULL;
 	m_stageThreeTexture=NULL;
+	m_bigATexture = nullptr;
+	m_bigBTexture = nullptr;
+	m_bigCTexture = nullptr;
+	m_bigDTexture = nullptr;
+	m_bigETexture = nullptr;
 	m_destAlphaTexture=NULL;
 	m_vertexBufferTiles=NULL;
 	m_vertexBufferBackup=NULL;
@@ -4285,6 +4290,8 @@ void WriteObjFile()
 	printf("OBJ file written successfully to %s\n", fileName);
 }
 
+extern bool g_useBigShader;
+
 void HeightMapRenderObjClass::Render(RenderInfoClass & rinfo)
 {
 	//USE_PERF_TIMER(Terrain_Render)
@@ -4421,6 +4428,45 @@ void HeightMapRenderObjClass::Render(RenderInfoClass & rinfo)
  		W3DShaderManager::setTexture(1,m_map->getAlphaTerrainTexture());
  		W3DShaderManager::setTexture(2,m_stageTwoTexture);	//cloud
  		W3DShaderManager::setTexture(3,m_stageThreeTexture);//noise
+
+		if (g_useBigShader)
+		{
+			if (m_bigATexture == nullptr)
+			{
+				m_bigATexture = new TextureClass("BigA", "beach1024_keep_big.tga", TextureClass::MIP_LEVELS_ALL, WW3D_FORMAT_A8R8G8B8, false);
+				m_bigBTexture = new TextureClass("BigB", "grass2048_keep_big.tga", TextureClass::MIP_LEVELS_ALL, WW3D_FORMAT_A8R8G8B8, false);
+				m_bigCTexture = new TextureClass("BigC", "26_dry_grass_2048_1024_keep_big.tga", TextureClass::MIP_LEVELS_ALL, WW3D_FORMAT_A8R8G8B8, false);
+				m_bigDTexture = new TextureClass("BigD", "23_dry_grass_1024_keep_big.tga", TextureClass::MIP_LEVELS_ALL, WW3D_FORMAT_A8R8G8B8, false);
+				m_bigETexture = new TextureClass("BigE", "stone2048_keep_big.tga", TextureClass::MIP_LEVELS_ALL, WW3D_FORMAT_A8R8G8B8, false);
+				//look in: InstallDir\Data\english\Art\Textures
+				//must be powers of 2
+				//contain keep_big if you want to keep the texture big (otherwise it downsizes it)
+				//only supports tga and dds, only tested tga
+			}
+
+			W3DShaderManager::setTexture(3, m_bigATexture);//sand
+			W3DShaderManager::setTexture(4, m_bigBTexture);//grass
+			W3DShaderManager::setTexture(5, m_bigCTexture);//sandy grass
+			W3DShaderManager::setTexture(6, m_bigDTexture);//small sand
+			W3DShaderManager::setTexture(7, m_bigETexture);//stones
+
+			DX8Wrapper::Set_DX8_Texture_Stage_State(3, D3DTSS_MINFILTER, D3DTEXF_LINEAR);
+			DX8Wrapper::Set_DX8_Texture_Stage_State(3, D3DTSS_MAGFILTER, D3DTEXF_LINEAR);
+			DX8Wrapper::Set_DX8_Texture_Stage_State(3, D3DTSS_MIPFILTER, D3DTEXF_LINEAR);
+			DX8Wrapper::Set_DX8_Texture_Stage_State(4, D3DTSS_MINFILTER, D3DTEXF_LINEAR);
+			DX8Wrapper::Set_DX8_Texture_Stage_State(4, D3DTSS_MAGFILTER, D3DTEXF_LINEAR);
+			DX8Wrapper::Set_DX8_Texture_Stage_State(4, D3DTSS_MIPFILTER, D3DTEXF_LINEAR);
+			DX8Wrapper::Set_DX8_Texture_Stage_State(5, D3DTSS_MINFILTER, D3DTEXF_LINEAR);
+			DX8Wrapper::Set_DX8_Texture_Stage_State(5, D3DTSS_MAGFILTER, D3DTEXF_LINEAR);
+			DX8Wrapper::Set_DX8_Texture_Stage_State(5, D3DTSS_MIPFILTER, D3DTEXF_LINEAR);
+			DX8Wrapper::Set_DX8_Texture_Stage_State(6, D3DTSS_MINFILTER, D3DTEXF_LINEAR);
+			DX8Wrapper::Set_DX8_Texture_Stage_State(6, D3DTSS_MAGFILTER, D3DTEXF_LINEAR);
+			DX8Wrapper::Set_DX8_Texture_Stage_State(6, D3DTSS_MIPFILTER, D3DTEXF_LINEAR);
+			DX8Wrapper::Set_DX8_Texture_Stage_State(7, D3DTSS_MINFILTER, D3DTEXF_LINEAR);
+			DX8Wrapper::Set_DX8_Texture_Stage_State(7, D3DTSS_MAGFILTER, D3DTEXF_LINEAR);
+			DX8Wrapper::Set_DX8_Texture_Stage_State(7, D3DTSS_MIPFILTER, D3DTEXF_LINEAR);
+		}
+
 		//Disable writes to destination alpha channel (if there is one)
 		if (DX8Wrapper::getBackBufferFormat() == WW3D_FORMAT_A8R8G8B8)
 			DX8Wrapper::Set_DX8_Render_State(D3DRS_COLORWRITEENABLE,D3DCOLORWRITEENABLE_BLUE|D3DCOLORWRITEENABLE_GREEN|D3DCOLORWRITEENABLE_RED);
@@ -4798,10 +4844,20 @@ void HeightMapRenderObjClass::renderTrees(CameraClass * camera)
 	}
 }
 
+//useful to turn off when debugging the main terrain shader
+extern bool g_showTerrainCorners;
+
 /** Renders an additoinal terrain pass including only those tiles which have more than 2 textures
 blended together.  Used primarily for corner cases where 3 different textures meet.*/
 void HeightMapRenderObjClass::renderExtraBlendTiles(void)
 {
+	if (!g_showTerrainCorners)
+		return;
+
+//	return; //these are those annoying tiles that look strange, but they look ok now
+	//this is in FFP. might need to port to hlsl if we want big textures
+	//maybe do roads at same time, they both use ST_ROAD_BASE_NOISE12
+
 	Int vertexCount = 0;
 	Int indexCount = 0;
 	Int xExtent = m_map->getXExtent();
