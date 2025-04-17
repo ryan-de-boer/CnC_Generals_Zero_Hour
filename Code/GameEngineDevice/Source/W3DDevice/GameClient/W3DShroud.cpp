@@ -523,6 +523,7 @@ void W3DShroud::render(CameraClass *cam)
 		return; //nothing to update from.  Must be in reset state.
 
 #if defined(_DEBUG) || defined(_INTERNAL)
+//	m_drawFogOfWar = true;
 	if (TheGlobalData && TheGlobalData->m_fogOfWarOn != m_drawFogOfWar)
 	{	
 		//fog state has changed since last time shroud system was initialized
